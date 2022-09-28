@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Validator;
 
-use App\Models\User; 
+use App\Models\User;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 class UserController extends Controller
@@ -17,9 +17,9 @@ class UserController extends Controller
      * Create a new AuthController instance.
      *
      * @return void
-     */ 
+     */
     public function __construct()
-    { 
+    {
         $this->middleware('auth:api', ['except' => ['login', 'register']]);
     }
 
@@ -27,7 +27,7 @@ class UserController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string',
             'email' => 'required|email|max:255|unique:users',
-            'password' => 'required|string' 
+            'password' => 'required|string'
         ]);
 
         if ($validator->fails()) {
@@ -62,7 +62,7 @@ class UserController extends Controller
 
         if($users != '[]'){
             auth()->factory()->setTTL($token_validity);
-            if(!$token = auth()->attempt(['email' => $request->email, 'password' => $request->password])){ 
+            if(!$token = auth()->attempt(['email' => $request->email, 'password' => $request->password])){
                 return response()->json(['error' => 'Unauthorized'], 401);
             }
             else{
@@ -73,10 +73,15 @@ class UserController extends Controller
             return response()->json("Email not found!", 404);
         }
 
-    } 
+    }
 
     public function profile(){
-        return response()->json($this->guard()->user());
+        try{
+            return response()->json(auth()->user());
+        }
+        catch (Exception $e){
+            return response()->json("No data found!", 404);
+        }
     }
 
     public function logout(){
@@ -88,5 +93,11 @@ class UserController extends Controller
         return $this->respondWithToken(auth()->refresh());
     }
 
-    protected function respondWithToken($token){ 
+    protected function respondWithToken($token){
+        return response()->json([
+            'access_token' => $token,
+            'token_type' => 'bearer',
+            'expires_in' => auth()->factory()->getTTL() * 60
+        ]);
+    }
 }
